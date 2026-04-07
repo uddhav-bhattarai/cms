@@ -1,61 +1,29 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
-import { ROLES_KEY, PERMISSIONS_KEY } from '../decorators';
-import { JwtPayload } from '@bakery-erp/types';
+import { PERMISSIONS_KEY } from '../decorators/roles.decorator';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private reflector: Reflector) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(PERMISSIONS_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    // If no permissions required, allow access
-    if (!requiredPermissions || requiredPermissions.length === 0) {
+    if (!requiredPermissions) {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    if (!user) {
+    const { user } = context.switchToHttp().getRequest();
+    if (!user || !user.permissions) {
       return false;
     }
 
-    // SUPER_ADMIN bypasses all permission checks
-    if (user.roles?.includes('SUPER_ADMIN')) {
-      return true;
-    }
-
-    const userPermissions = user.permissions || [];
-
-    // Check if user has at least one of the required permissions
-    return requiredPermissions.some((requiredPermission) => {
-      // Exact match
-      if (userPermissions.includes(requiredPermission)) {
-        return true;
-      }
-
-      const [resource, action] = requiredPermission.split(':');
-
-      // Wildcard resource (e.g., "inventory:*")
-      if (userPermissions.includes(`${resource}:*`)) {
-        return true;
-      }
-
-      // Wildcard action (e.g., "*:read")
-      if (userPermissions.includes(`*: ${action}`)) {
-        return true;
-      }
-
-      return false;
-    });
+    // Check if user has all required permissions
+    return requiredPermissions.every((permission) =>
+      user.permissions.includes(permission),
+    );
   }
 }

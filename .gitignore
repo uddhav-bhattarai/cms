@@ -1,39 +1,52 @@
 ```
 # Dependencies
 node_modules/
-.npm/
-.yarn/
+.pnpm-store/
 
 # Build outputs
 dist/
 build/
 coverage/
-.eslintcache
 
 # Environment variables
 .env
 .env.local
 .env.*
 
-# IDE specific
+# Logs
+*.log
+
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS generated files
+# OS files
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# Python cache (if any Python files exist in the project)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# TypeScript/JavaScript build artifacts
+*.tsbuildinfo
+*.js.map
+*.jsx.map
+*.ts.map
 
 # Temporary files
 *.tmp
 *.temp
 
-# TypeScript/JavaScript specific
-*.tsbuildinfo
-.next/
+# Cache directories
+.cache/
+.nyc_output/
+.mypy_cache/
+.pytest_cache/
 .nuxt/
+.next/
 ```

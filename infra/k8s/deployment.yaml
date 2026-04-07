@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bakery-erp-api
+  labels:
+    app: bakery-erp-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bakery-erp-api
+  template:
+    metadata:
+      labels:
+        app: bakery-erp-api
+    spec:
+      containers:
+        - name: api-gateway
+          image: bakery-erp/api-gateway:latest
+          ports:
+            - containerPort: 4000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "4000"
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: bakery-erp-secrets
+                  key: db-host
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bakery-erp-secrets
+                  key: db-password
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: bakery-erp-secrets
+                  key: jwt-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bakery-erp-api-service
+spec:
+  selector:
+    app: bakery-erp-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4000
+  type: ClusterIP

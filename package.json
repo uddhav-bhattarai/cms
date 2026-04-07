@@ -12,15 +12,22 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "db:migrate": "pnpm --filter @bakery/api-gateway db:migrate",
+    "db:seed": "pnpm --filter @bakery/api-gateway db:seed",
+    "docker:up": "docker-compose -f infra/docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f infra/docker/docker-compose.yml down",
+    "k8s:deploy": "kubectl apply -f infra/k8s/",
+    "security:check": "pnpm audit --prod"
   },
   "devDependencies": {
     "turbo": "^2.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.4.0"
   },
-  "packageManager": "npm@10.0.0",
+  "packageManager": "pnpm@8.15.0",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
   }
 }
