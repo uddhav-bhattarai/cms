@@ -7,16 +7,8 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-export interface ApiError {
-  message: string | string[];
-  statusCode: number;
-  error?: string;
-  timestamp: string;
-  path: string;
-}
-
 @Catch()
-export class HttpExceptionFilter implements ExceptionFilter {
+export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -32,41 +24,41 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.message
         : 'Internal server error';
 
-    const errorResponse: ApiError = {
+    // Log error details in production (exclude sensitive info)
+    console.error('[ERROR]', {
+      timestamp: new Date().toISOString(),
+      method: request.method,
+      url: request.url,
+      status,
       message,
+    });
+
+    // Don't expose internal errors to clients in production
+    const isProduction = process.env.NODE_ENV === 'production';
+    const safeMessage =
+      status === HttpStatus.INTERNAL_SERVER_ERROR && isProduction
+        ? 'Internal server error'
+        : message;
+
+    response.status(status).json({
       statusCode: status,
-      error: this.getErrorMessage(status),
+      message: safeMessage,
       timestamp: new Date().toISOString(),
       path: request.url,
-    };
-
-    // Log error in production
-    if (status >= 500) {
-      console.error('[HTTP EXCEPTION]', JSON.stringify({
-        status,
-        message,
-        path: request.url,
-        method: request.method,
-        stack: exception instanceof Error ? exception.stack : undefined,
-      }));
-    }
-
-    response.status(status).json(errorResponse);
+      ...(status !== HttpStatus.INTERNAL_SERVER_ERROR && {
+        error: this.getErrorMessage(exception),
+      }),
+    });
   }
 
-  private getErrorMessage(status: number): string {
-    const messages: Record<number, string> = {
-      400: 'Bad Request',
-      401: 'Unauthorized',
-      403: 'Forbidden',
-      404: 'Not Found',
-      409: 'Conflict',
-      422: 'Unprocessable Entity',
-      429: 'Too Many Requests',
-      500: 'Internal Server Error',
-      502: 'Bad Gateway',
-      503: 'Service Unavailable',
-    };
-    return messages[status] || 'Error';
+  private getErrorMessage(exception: unknown): string {
+    if (exception instanceof HttpException) {
+      const response = exception.getResponse();
+      if (typeof response === 'string') {
+        return response;
+      }
+      return (response as any).message || 'Unknown error';
+    }
+    return 'Unknown error';
   }
 }

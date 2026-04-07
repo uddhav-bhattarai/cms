@@ -1,6 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators';
+import { ROLES_KEY, PERMISSIONS_KEY } from '../decorators/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -11,25 +11,17 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-
-    // If no roles required, allow access
-    if (!requiredRoles || requiredRoles.length === 0) {
+    
+    if (!requiredRoles) {
       return true;
     }
-
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    if (!user || !user.roles) {
+    
+    const { user } = context.switchToHttp().getRequest();
+    if (!user) {
       return false;
     }
 
-    // SUPER_ADMIN has access to everything
-    if (user.roles.includes('SUPER_ADMIN')) {
-      return true;
-    }
-
-    // Check if user has at least one of the required roles
-    return requiredRoles.some((role) => user.roles.includes(role));
+    // Check if user has any of the required roles
+    return requiredRoles.some((role) => user.roles?.includes(role));
   }
 }
